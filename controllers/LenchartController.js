@@ -69,7 +69,7 @@ module.exports = {
   save: async (req, res) => {
     
     const newFilename = await resizeImage(req);
-
+    console.log(req.files)
     const lenchart = {
       id: uuid.v4(),
       name: req.body.name,
