@@ -9,22 +9,32 @@ const deleteLenchart = require("../services/deleteLenchart");
 const getImageFromFile = require("../services/getImageFromFile");
 const checkLogin = require("../services/login");
 const resizeImage = require("../services/resizeImage");
+const getImage = require("../services/aws/getImage");
+const readFile = require("../services/aws/readFile");
+const createFile = require("../services/lenchartServicesWithAWS/create");
+const deleteOne = require("../services/lenchartServicesWithAWS/delete");
+const findOne = require("../services/aws/findOne");
 
 const uuid = require("uuid");
 
 module.exports = {
   get: async (req, res) => {
-    var data = await getLencharts();
-    res.status(200).json(data);
+    const read = await readFile();
+    const { success } = read;
+    console.log(read);
+    if (success === false) {
+      res.status(500).json(read);
+    } else {
+      res.status(200).json(read);
+    }
   },
   getImage: async (req, res) => {
     var filename = req.params.name;
-    var url = getImageFromFile(filename);
-    if (url) {
-      res.status(200).sendFile(url);
-    } else {
-      res.status(404).send("Image Not Found");
-    }
+    const imageStream = await getImage(filename);
+    imageStream.on("error", function (err) {
+      res.status(404).json("Not Found");
+    });
+    imageStream.pipe(res);
   },
   login: async (req, res) => {
     const data = {
@@ -41,9 +51,9 @@ module.exports = {
   },
   detail: async (req, res) => {
     var id = req.params.id;
-    var result = await getLenchartById(id);
-    if (result) {
-      res.status(200).json(result);
+    var { success, data } = await findOne(id);
+    if (success == true) {
+      res.status(200).json(data);
     } else {
       res.status(400).send("Not found");
     }
@@ -67,32 +77,21 @@ module.exports = {
     }
   },
   save: async (req, res) => {
-    
-    const newFilename = await resizeImage(req);
-    console.log(req.files)
-    const lenchart = {
-      id: uuid.v4(),
-      name: req.body.name,
-      description: req.body.description,
-      image: req.files.image[0].filename,
-      thumbnail: newFilename,
-    };
-    var result = await saveLenchart(lenchart);
-    if (!result) {
-      await deleteImage(lenchart.image);
-      await deleteImage(lenchart.thumbnail);
-      res.status(400).json({ error: "Create Fail" });
+    const result = await createFile(req);
+    if (result.success == true) {
+      res.status(200).json({ result });
     } else {
-      res.status(200).json({ data: lenchart.id });
+      res.status(500).json({ result });
     }
   },
   delete: async (req, res) => {
     const id = req.params.id;
-    const result = await deleteLenchart(id);
-    if (!result) {
-      res.status(400).json({ error: "Delete Fail" });
+    const result = await deleteOne(id);
+    console.log(result);
+    if (result.success == true) {
+      res.status(200).json(result.data);
     } else {
-      res.status(200).json({ data: id });
+      res.status(500).json(result.data);
     }
   },
 };
