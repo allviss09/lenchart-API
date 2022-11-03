@@ -13,6 +13,6 @@ module.exports = function (app) {
     .put(controller.update)
     .delete(controller.delete);
 
-  app.route("/image/:name").get(controller.getImage);
+  app.route("/image/:name").get(controller.getImageURL);
   app.route("/user/login").post(controller.login);
 };

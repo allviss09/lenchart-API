@@ -1,5 +1,10 @@
 "use strict";
 
+const AWS = require("aws-sdk");
+const s3 = new AWS.S3();
+const NodeCache = require("node-cache");
+const myCache = new NodeCache({ stdTTL: 600, checkperiod: 4320 });
+
 const getLencharts = require("../data/readdata");
 const saveLenchart = require("../services/saveLenchart");
 const deleteImage = require("../services/deleteImage");
@@ -9,16 +14,24 @@ const deleteLenchart = require("../services/deleteLenchart");
 const getImageFromFile = require("../services/getImageFromFile");
 const checkLogin = require("../services/login");
 const resizeImage = require("../services/resizeImage");
-const getImage = require("../services/aws/getImage");
+const getImageUrl = require("../services/aws/getImageUrl");
 const readFile = require("../services/aws/readFile");
 const createFile = require("../services/lenchartServicesWithAWS/create");
 const deleteOne = require("../services/lenchartServicesWithAWS/delete");
 const findOne = require("../services/aws/findOne");
+const syncJsonWithAws = require("../services/lenchartServicesWithAWS/syncJsonWithAws");
 
 const uuid = require("uuid");
 
 module.exports = {
   get: async (req, res) => {
+    const cache = myCache.get("URLDURATION");
+    console.log("CACCHE", cache);
+    if (cache == null) {
+      console.log("CACHE NULL");
+      syncJsonWithAws();
+      myCache.set("URLDURATION", new Date().toISOString(), 432000);
+    }
     const read = await readFile();
     const { success } = read;
     console.log(read);
@@ -28,13 +41,14 @@ module.exports = {
       res.status(200).json(read);
     }
   },
-  getImage: async (req, res) => {
-    var filename = req.params.name;
-    const imageStream = await getImage(filename);
-    imageStream.on("error", function (err) {
-      res.status(404).json("Not Found");
-    });
-    imageStream.pipe(res);
+  getImageURL: async (req, res) => {
+    const key = req.params.name;
+    const url = await getImageUrl(key);
+    if (url != null) {
+      res.status(200).json(url);
+    } else {
+      res.status(404).json("Not Found!");
+    }
   },
   login: async (req, res) => {
     const data = {
