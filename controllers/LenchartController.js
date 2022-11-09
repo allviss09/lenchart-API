@@ -103,9 +103,9 @@ module.exports = {
     const result = await deleteOne(id);
     console.log(result);
     if (result.success == true) {
-      res.status(200).json(result.data);
+      res.status(200).json(result);
     } else {
-      res.status(500).json(result.data);
+      res.status(500).json(result);
     }
   },
 };

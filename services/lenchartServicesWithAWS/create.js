@@ -23,7 +23,7 @@ const createLenchart = async (req) => {
     for (const file of files) {
       let { fileBuffer, ...fileParams } = file;
       if (file.fieldName == "thumbnail") {
-        fileBuffer = await sharp(fileBuffer).resize(480, 480).toBuffer();
+        fileBuffer = await sharp(fileBuffer).resize(500, 500).toBuffer();
       }
       const result = await uploadFile(fileBuffer, fileParams);
       fileUrls.push({
